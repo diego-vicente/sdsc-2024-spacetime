@@ -42,8 +42,8 @@ AS (
         DATE_TRUNC(date, WEEK) AS week
       FROM UNNEST (
         GENERATE_DATE_ARRAY(
-          DATE '2021-01-01',
-          DATE '2023-12-01',
+          DATE '2021-01-03',
+          DATE '2022-12-31',
           INTERVAL 7 DAY
         )
       ) AS date
@@ -211,8 +211,6 @@ The results of this query include the following columns:
 
 With all these features, we can run the following query, to proportionally distribute the accidents of each LSOA between the associated H3 cells manually.
 
-<!-- TODO: fix this query to generate all the combinations -->
-
 ```sql
 CREATE OR REPLACE TABLE
   `sdsc-london-2024.spacetime.london_collisions_weekly_h3`
@@ -271,7 +269,7 @@ CALL `carto-un`.carto.LOCAL_MORANS_I_H3_TABLE(
   'n_collisions',
   2,
   'inverse',
-  100
+  85
 );
 
 CREATE OR REPLACE TABLE
@@ -385,12 +383,30 @@ We can immediately see the different dynamics in the widget:
 
 There is yet another analysis we can apply to the space-time Getis-Ord results, that will digest the results into a single map based on several pre-defined categories. In the future, these will be gathered in the documentation, and even though they are subject to change, this a quick summary of the categories that can be classified:
 
-<!-- TODO: Include a table with the final categories -->
+| Category                 | Description                                                                                                                                                                                                                           |
+| :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Undetected Pattern`     | This category applies to locations that do not exhibit any discernible patterns of hot or cold activity as defined in subsequent categories.                                                                                          |
+| `Incipient Hotspot`      | This denotes a location that has become a significant hotspot only in the latest observed time step, without any prior history of significant hotspot activity.                                                                       |
+| `Sequential Hotspot`     | Identifies a location experiencing an unbroken series of significant hotspot activity leading up to the most recent time step, provided it had no such activity beforehand and less than 90% of all observed intervals were hotspots. |
+| `Strengthening Hotspot`  | A location consistently identified as a hotspot in at least 90% of time steps, including the last, where there's a statistically significant upward trend in activity intensity.                                                      |
+| `Stable Hotspot`         | Represents a location maintaining significant hotspot status in at least 90% of time steps without showing a clear trend in activity intensity changes over time.                                                                     |
+| `Declining Hotspot`      | A location that has consistently been a hotspot in at least 90% of time steps, including the most recent one, but shows a statistically significant decrease in the intensity of its activity.                                        |
+| `Occasional Hotspot`     | Locations that sporadically become hotspot, with less than 90% of time steps marked as significant hotspots and no instances of being a significant coldspot.                                                                         |
+| `Fluctuating Hotspot`    | Marks a location as a significant hotspot in the latest time step that has also experienced significant coldspot phases in the past, with less than 90% of intervals as significant hotspots.                                         |
+| `Legacy Hotspot`         | A location that isn't currently a hotspot but was significantly so in at least 90% of past intervals.                                                                                                                                 |
+| `Incipient Coldspot`     | Identifies a location that is marked as a significant coldspot for the first time in the latest observed interval, without any previous history of significant coldspot status.                                                       |
+| `Sequential Coldspot`    | A location with a continuous stretch of significant coldspot activity leading up to the latest interval, provided it wasn't identified as a coldspot before this streak and less than 90% of intervals were marked as coldspots.      |
+| `Strengthening Coldspot` | A location identified as a coldspot in at least 90% of observed intervals, including the most recent, where there's a statistically significant increase in the intensity of low activity.                                            |
+| `Stable Coldspot`        | A location that has been a significant coldspot in at least 90% of intervals without any discernible trend in the intensity of low activity over time.                                                                                |
+| `Declining Coldspot`     | Locations that have been significant coldspots in at least 90% of time steps, including the latest, but show a significant decrease in low activity intensity.                                                                        |
+| `Occasional Coldspot`    | Represents locations that sporadically become significant coldspots, with less than 90% of time steps marked as significant coldspots and no instances of being a significant hot spot.                                               |
+| `Fluctuating Coldspot`   | A location marked as a significant coldspot in the latest interval that has also been a significant hot spot in past intervals, with less than 90% of intervals marked as significant coldspots.                                      |
+| `Legacy Coldspot`        | Locations that are not currently coldspots but were significantly so in at least 90% of past intervals.                                                                                                                               |
 
 We can run the analysis with a function call using the Getis-Ord results:
 
 ```sql
-CALL `cartodb-on-gcp-datascience.dvicente_at_carto.SPACETIME_HOTSPOTS_CLASSIFICATION_TABLE`(
+CALL `cartodb-on-gcp-datascience.dvicente_at_carto.SPACETIME_HOTSPOTS_CLASSIFICATION`(
   'sdsc-london-2024.spacetime.london_collisions_weekly_h3_gi',
   'sdsc-london-2024.spacetime.london_collisions_hotspot_classification',
   'index',
