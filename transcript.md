@@ -24,19 +24,47 @@ The data comes in two different source tables:
 
 For this use case, we are not interested to work with the individual collisions, but the aggregate counts per chosen timestamp. Therefore, our first step is to format the data in a single table that counts how many accidents per geographical support (per LSOA) have happened in each time step. We could work with daily data but in this use case it is probably going to be far too sparse - let's aggregate the series in weekly steps instead.
 
+<!-- TODO: further comment on the all_indexes table -->
+
 ```sql
 CREATE OR REPLACE TABLE
+  `sdsc-london-2024.spacetime.london_collisions_all_indexes`
+AS (
+  WITH
+    all_lsoa AS (
+      SELECT 
+        DISTINCT id AS lsoa_code
+      FROM 
+        `sdsc-london-2024.spacetime.lsoa_reference_2021`
+    ),
+    all_weeks AS (
+      SELECT DISTINCT
+        DATE_TRUNC(date, WEEK) AS week
+      FROM UNNEST (
+        GENERATE_DATE_ARRAY(
+          DATE '2021-01-01',
+          DATE '2023-12-01',
+          INTERVAL 7 DAY
+        )
+      ) AS date
+    )
+  SELECT lsoa_code, week
+  FROM all_lsoa, all_weeks
+);
+
+CREATE OR REPLACE TABLE
   `sdsc-london-2024.spacetime.london_collisions_weekly`
-CLUSTER BY week, lsoa_code
 AS (
   SELECT
-    collision_location_lsoa_code AS lsoa_code,
-    DATE_TRUNC(date, WEEK) AS week,
+    lsoa_code, week,
     COUNT(DISTINCT collision_id) AS n_collisions
   FROM
-    `sdsc-london-2024.spacetime.london_collisions`
-  WHERE
-    date BETWEEN '2021-01-01' AND '2023-12-31'
+    `sdsc-london-2024.spacetime.london_collisions_all_indexes` all_idx
+  LEFT JOIN
+    `sdsc-london-2024.spacetime.london_collisions` coll
+  ON
+    coll.collision_location_lsoa_code = all_idx.lsoa_code
+    AND DATE_TRUNC(coll.date, WEEK) = all_idx.week
   GROUP BY
     lsoa_code,
     week
