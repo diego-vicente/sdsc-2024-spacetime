@@ -12,11 +12,11 @@ The data comes in two different source tables:
 
 - The **LSOA reference data**, a table that contains the ID and geometry per LSOA and different valuable features like the population that lives in such LSOA or the road km it contains.
 
-[SDSC London '24 - LSOA reference data](https://clausa.app.carto.com/map/529040c6-bd6a-4ba8-b608-a954aedab2db)
+[![SDSC London '24 - LSOA reference data](./img/01-lsoa-reference-data.png)](https://clausa.app.carto.com/map/529040c6-bd6a-4ba8-b608-a954aedab2db)
 
 - The **collision data** itself, that contains a row per accidents and includes several features related to it as severity, time at which it occurred, and the LSOA where it happened.
 
-[SDSC London '24 - Vehicle Collisions per LSOA](https://clausa.app.carto.com/map/9781d4d4-ea52-49cc-8f12-e1075c9cc12b)
+[![SDSC London '24 - Vehicle Collisions per LSOA](./img/02-collisions-per-lsoa.png)](https://clausa.app.carto.com/map/9781d4d4-ea52-49cc-8f12-e1075c9cc12b)
 
 ## Exploratory Analysis
 
@@ -77,7 +77,7 @@ This way, we will now have one row per LSOA and week, that will contain the tota
 
 This map is, however, a bit misleading. To understand why, let's take a step back and plot the population feature we have in the LSOA source table. Here, we can see the population density of London… Except we cannot. This map does not represent in bolder colors those areas with the most population, because the population that fits in an area is tightly dependent of the zone size, and all these zones are different areas!
 
-[SDSC London '24 - Population per LSOA](https://clausa.app.carto.com/map/2aea85f3-aaaf-4b5e-a6eb-4ce7a6f12f2a)
+[![SDSC London '24 - Population per LSOA](./img/03-population-per-lsoa.png)](https://clausa.app.carto.com/map/2aea85f3-aaaf-4b5e-a6eb-4ce7a6f12f2a)
 
 This is called the [Modifiable Areal Unit Problem or MAUP](https://en.wikipedia.org/wiki/Modifiable_areal_unit_problem), and it's a measure bias that we has been introduced when aggregating point data (collisions) to units with different shapes and scales (the LSOA). If we had source data (collisions’ coordinates) we could have fell into it, but this time it came in our source data. It is important to have this in mind, to compensate for this bias.
 
@@ -91,7 +91,7 @@ FROM
   `sdsc-london-2024.spacetime.lsoa_reference_2021`
 ```
 
-[SDSC London '24 - Population density per LSOA](https://clausa.app.carto.com/map/c2375760-4833-4447-9472-0ab233528608)
+[![SDSC London '24 - Population density per LSOA](./img/04-population-density-per-lsoa.png)](https://clausa.app.carto.com/map/c2375760-4833-4447-9472-0ab233528608)
 
 We can see how the representation is night and day, and this visualization does actually represent where most of the population is located in London. Let's try, however, a different approach to work with this data.
 
@@ -177,7 +177,7 @@ CALL `carto-un`.carto.ENRICH_GRID(
 );
 ```
 
-[SDSC London '24 - Population H3](https://clausa.app.carto.com/map/f5689fc9-c7a2-4f11-aa55-e46e13f77dcd)
+[![SDSC London '24 - Population H3](./img/05-population-h3.png)](https://clausa.app.carto.com/map/f5689fc9-c7a2-4f11-aa55-e46e13f77dcd)
 
 Here we can see how the visual representation is so much different using H3. This is because thanks to the aerial distribution we are making, we are compensating for the MAUP, by projecting the data into equally-sized portions of land. This is a true-to-life, first-glance map of the London population density.
 
@@ -243,7 +243,7 @@ AS (
 );
 ```
 
-[SDSC London '24 - Vehicle Collisions H3](https://clausa.app.carto.com/map/e6be2061-25af-4a3f-8700-f1aaf3aabedc)
+[![SDSC London '24 - Vehicle Collisions H3](./img/06-collisions-h3.png)](https://clausa.app.carto.com/map/e6be2061-25af-4a3f-8700-f1aaf3aabedc)
 
 Now we have projected the data into H3, but it is important to understand that this way we don’t really have "accidents” anymore: instead, we have something closer to the “probability of an accident”: since we don't have the location of the accident but the LSOA, in case an LSOA spans across 4 different H3 cells, each of them will receive 0.25 accidents. This is a weird measurement, especially if we were to show this in a dashboard to end users, but it is perfectly fine for the analysis that we are going to perform (and some of them will even compensate a bit for it).
 
@@ -302,7 +302,7 @@ After running the procedure, we filter only those cells where we have a signific
 
 Therefore, both `LH` and `HL` are geospatial outliers, but the most interesting ones are `HL` cells: those cells that concentrate a lot of collisions without the surroundings doing the same imply that they have an anomalously high value that is probably not explained by more vehicles passing by.
 
-[SDSC London '24 - Vehicle Collisions Local Moran's I](https://clausa.app.carto.com/map/33bbee6c-2329-48ec-9f55-3a764339a39e)
+[![SDSC London '24 - Vehicle Collisions Local Moran's I](./img/07-local-morans-i.png)](https://clausa.app.carto.com/map/33bbee6c-2329-48ec-9f55-3a764339a39e)
 
 ## Space-time Insights
 
@@ -336,7 +336,7 @@ This function will return a table with the following columns:
 
 By performing this statistic, we can now check how different parts of the city become “hotter” or “colder” as time progresses. This is already insightful, but we have two more functions still that will help us extract more knowledge of this result.
 
-[SDSC London '24 - Vehicle Collisions Gi H3](https://clausa.app.carto.com/map/6cff259c-1ea9-44ad-aa75-e20364031966)
+[![SDSC London '24 - Vehicle Collisions Gi H3](./img/08-spacetime-gi.png)](https://clausa.app.carto.com/map/6cff259c-1ea9-44ad-aa75-e20364031966)
 
 ### Time Series Clustering
 
@@ -369,9 +369,7 @@ Even if it can feel like some layers of indirection, this has several advantages
 
 In this map shows the different clusters that are returned as a result:
 
-<!-- TODO: sync the colors with their cluster -->
-
-[SDSC '24 London - Vehicle Collisions Clusters](https://clausa.app.carto.com/map/a91bd3c2-dcd1-44a8-8f09-25a1347b4d22)
+[![SDSC '24 London - Vehicle Collisions Clusters](./img/09-time-series-clustering.png)](https://clausa.app.carto.com/map/a91bd3c2-dcd1-44a8-8f09-25a1347b4d22)
 
 We can immediately see the different dynamics in the widget:
 
@@ -417,7 +415,7 @@ CALL `cartodb-on-gcp-datascience.dvicente_at_carto.SPACETIME_HOTSPOTS_CLASSIFICA
 );
 ```
 
-[SDSC '24 London - Emerging Hotspot Classification](https://clausa.app.carto.com/map/9ece5353-7dfe-4ed1-8230-063c0b5cd2b0)
+[![SDSC '24 London - Emerging Hotspot Classification](./img/10-emerging-hotspots.png)](https://clausa.app.carto.com/map/9ece5353-7dfe-4ed1-8230-063c0b5cd2b0)
 
 We can see how now we have the different types of behaviors at a glance in a single map. There are several insights we can extract from this map:
 
