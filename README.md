@@ -4,7 +4,7 @@
 
 This repository contains all the material used in the workshop, organized in different formats for ease of use. Here you can find:
 - A [complete transcript](./transcript.md) with supporting material like code, maps or images;
-- A folder containing [all of the SQL queries](./sql) used in the workshop;
+- A folder containing [all of the SQL queries](./sql) used in the workshop and the maps;
 - Links to the other relevant materials like [the slides]() used.
 
 ## Notes on the code
