@@ -120,9 +120,10 @@ Except very certain use cases, most times it comes down to personal preference o
 
 ### Enrichment Functions
 
+First, we need to define an area of interest for the study. In the dataset, we have provided a boundary for such area: the city of London as a whole. In case you want to check it, you can simply query:
 
 ```sql
-SELECT * FROM `sdsc-london-2024.spacetime.london_boundary`
+SELECT geom FROM `sdsc-london-2024.spacetime.london_boundary`
 ```
 
 All the enrichment functions must receive an input grid that defines which cells are considered a zone of interest for our data. The first step we will be taking is to create an H3 grid of resolution 8 of the whole city of London.
