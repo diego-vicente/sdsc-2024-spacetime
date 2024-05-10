@@ -1,5 +1,5 @@
 -- Use a preview function to run the classification
-CALL `cartodb-on-gcp-datascience.dvicente_at_carto.SPACETIME_HOTSPOTS_CLASSIFICATION`(
+CALL `sdsc-london-2024.preview_carto.SPACETIME_HOTSPOTS_CLASSIFICATION`(
   'sdsc-london-2024.spacetime.london_collisions_weekly_h3_gi',
   'sdsc-london-2024.spacetime.london_collisions_hotspot_classification',
   'index',
