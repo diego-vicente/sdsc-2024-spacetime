@@ -10,13 +10,12 @@ This data has been uploaded already to BigQuery and enriched with the appropriat
 
 The data comes in two different source tables:
 
-- The **LSOA reference data**, a table that contains the ID and geometry per LSOA and different valuable features like the population that lives in such LSOA or the road km it contains.
+- The **collision data** itself, that contains a row per accidents and includes several features related to it as severity, time at which it occurred, and the LSOA where it happened. It can be found in the public table `sdsc-london-2024.spacetime.london_collisions`.
+
+- The **LSOA reference data**, a table that contains the ID and geometry per LSOA and different valuable features like the population that lives in such LSOA or the road km it contains. It can be found in the public table `sdsc-london-2024.spacetime.lsoa_reference_2021`. We can plot these geometries in a map to check exactly what are we working with.
 
 [![SDSC London '24 - LSOA reference data](./img/01-lsoa-reference-data.png)](https://clausa.app.carto.com/map/529040c6-bd6a-4ba8-b608-a954aedab2db)
 
-- The **collision data** itself, that contains a row per accidents and includes several features related to it as severity, time at which it occurred, and the LSOA where it happened.
-
-[![SDSC London '24 - Vehicle Collisions per LSOA](./img/02-collisions-per-lsoa.png)](https://clausa.app.carto.com/map/9781d4d4-ea52-49cc-8f12-e1075c9cc12b)
 
 ## Exploratory Analysis
 
@@ -24,7 +23,7 @@ The data comes in two different source tables:
 
 For this use case, we are not interested to work with the individual collisions, but the aggregate counts per chosen timestamp. Therefore, our first step is to format the data in a single table that counts how many accidents per geographical support (per LSOA) have happened in each time step. We could work with daily data but in this use case it is probably going to be far too sparse - let's aggregate the series in weekly steps instead.
 
-<!-- TODO: further comment on the all_indexes table -->
+We will be using an intermediate result, `london_collisions_all_indexes`, that consists on the cartesian product of all relevant weeks and all of the LSOAs. This will allow us to make sure that no 
 
 ```sql
 CREATE OR REPLACE TABLE
@@ -71,17 +70,21 @@ AS (
 );
 ```
 
-This way, we will now have one row per LSOA and week, that will contain the total number of collisions that have happened in such area. This is, certainly, a step in the right direction!
+This way, we will now have one row per LSOA and week, that will contain the total number of collisions that have happened in such area. This is, certainly, a step in the right direction: we can now plot all this information to a map, and this table will be the cornerstone of the whole analysis we will be performing.
+
+[![SDSC London '24 - Vehicle Collisions per LSOA](./img/02-collisions-per-lsoa.png)](https://clausa.app.carto.com/map/9781d4d4-ea52-49cc-8f12-e1075c9cc12b)
 
 ### Explaining MAUP
 
-This map is, however, a bit misleading. To understand why, let's take a step back and plot the population feature we have in the LSOA source table. Here, we can see the population density of London… Except we cannot. This map does not represent in bolder colors those areas with the most population, because the population that fits in an area is tightly dependent of the zone size, and all these zones are different areas!
+This map is, however, a bit misleading. To understand why, let's take a step back and plot the population feature we have in the LSOA source table. 
 
 [![SDSC London '24 - Population per LSOA](./img/03-population-per-lsoa.png)](https://clausa.app.carto.com/map/2aea85f3-aaaf-4b5e-a6eb-4ce7a6f12f2a)
 
-This is called the [Modifiable Areal Unit Problem or MAUP](https://en.wikipedia.org/wiki/Modifiable_areal_unit_problem), and it's a measure bias that we has been introduced when aggregating point data (collisions) to units with different shapes and scales (the LSOA). If we had source data (collisions’ coordinates) we could have fell into it, but this time it came in our source data. It is important to have this in mind, to compensate for this bias.
+Here, we can get an intuition of how population is distributed along the city… Except we cannot. This map does not represent in bolder colors those areas with the most population density, because the population that fits in an area is tightly dependent of the zone size, and all these zones have different areas. A lot of tiny areas with tiny populations can amount to the largest densities in the city, and vice versa.
 
-To have a more true-to-life representation of the population, we could compute the population density: it is not really the same variable anymore (it will be extensive instead of intensive), but for plotting it will be more suitable:
+This is called the [Modifiable Areal Unit Problem or MAUP](https://en.wikipedia.org/wiki/Modifiable_areal_unit_problem), and it's a measure bias that we has been introduced when aggregating point data (collisions) to units with different shapes and scales (the LSOA). There is nothing inherently wrong in it, but can cause confusion if we don't fully understand it; that's why the collisions map is not great: it's a bad way to present the data to a general public. 
+
+If we had source data (collisions’ coordinates) we could have fell into it, but this time it came in our source data. It is important to have this in mind, to compensate for this bias. To have a more true-to-life representation of the population, we could compute the population density: it is not really the same variable anymore (it will be extensive instead of intensive), but for plotting it will be more suitable:
 
 ```sql
 SELECT
@@ -164,7 +167,11 @@ Unfortunately, we cannot do the complete workshop in Workflows yet: our product 
 
 Now that we have our base grid, we can start projecting the data to it. Let's first start with all the variables that have no time dimension, so we can better understand what’s going on.
 
-The `ENRICH_GRID` function is one of the many data functions available in the Analytics Toolbox that does exactly what we need in this moment. 
+The `ENRICH_GRID` function is one of the many data functions available in the Analytics Toolbox that does exactly what we need in this moment. For the population, it we want to use the `sum` aggregation. It will return (per cell):
+- In case there is a single LSOA intersecting the cell: the areal proportion of the LSOA (if the cell intersects one cell of the LSOA, it will get one third of the population).
+- In case there are multiple LSOAs intersecting the cells: the sum of the areal proportions of all the LSOAs. If we were using the `avg` aggregation instead, we would get the weighted average based on the intersecting area.
+- If we were using lines, it would use the length instead of the area. If we were using points, the `count` aggregation is often useful.
+
 
 ```sql
 CALL `carto-un`.carto.ENRICH_GRID(
@@ -251,6 +258,8 @@ Now we have projected the data into H3, but it is important to understand that t
 ## Spatial Insights
 
 ### Local Moran’s *I*
+
+<!-- TODO: further talk about LISA metrics? -->
 
 Even though the main focus of the workshop is to focus on the space-time functions, let's first run a spatial-only analysis that will provide very valuable insights for the use case and that will be a very nice complement to the rest of the work we will be doing.
 
@@ -349,7 +358,7 @@ In the Analytics Toolbox, as part of these new space-time initiatives, we have m
 It can be tricky to cluster the series as-is, but now that we have smoothed the signal using the space-time Getis-Ord, we could try to cluster the cells based on the resulting temperature. We will take only into account those cells that have at least 75% of their observations with reasonable significance.
 
 ```sql
-CALL `cartodb-on-gcp-datascience.dvicente_at_carto.TIME_SERIES_CLUSTERING`(
+CALL `sdsc-london-2024.preview_carto.TIME_SERIES_CLUSTERING`(
   '''
     SELECT * FROM `sdsc-london-2024.spacetime.london_collisions_weekly_h3_gi`
     QUALIFY PERCENTILE_CONT(p_value, 0.6) OVER (PARTITION BY index) < 0.05
@@ -405,7 +414,7 @@ There is yet another analysis we can apply to the space-time Getis-Ord results, 
 We can run the analysis with a function call using the Getis-Ord results:
 
 ```sql
-CALL `cartodb-on-gcp-datascience.dvicente_at_carto.SPACETIME_HOTSPOTS_CLASSIFICATION`(
+CALL `sdsc-london-2024.preview_carto.SPACETIME_HOTSPOTS_CLASSIFICATION`(
   'sdsc-london-2024.spacetime.london_collisions_weekly_h3_gi',
   'sdsc-london-2024.spacetime.london_collisions_hotspot_classification',
   'index',
