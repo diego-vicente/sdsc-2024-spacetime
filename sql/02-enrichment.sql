@@ -1,3 +1,23 @@
+-- Define the base grid
+CREATE OR REPLACE TABLE
+  `sdsc-london-2024.spacetime.london_h3_8`
+CLUSTER BY h3
+AS (
+  SELECT
+    h3
+  FROM
+    UNNEST (
+      `carto-un`.carto.H3_POLYFILL(
+        (
+          SELECT geom
+          FROM `sdsc-london-2024.spacetime.london_boundary`
+        ),
+        8
+      )
+    ) AS h3
+);
+
+
 -- Simple enrichment of LSOA population to H3
 CALL `carto-un`.carto.ENRICH_GRID(
   'h3',
