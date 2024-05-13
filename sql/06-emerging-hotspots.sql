@@ -14,9 +14,9 @@ CALL `sdsc-london-2024.preview_carto.SPACETIME_HOTSPOTS_CLASSIFICATION`(
 --
 -- SELECT 
 --   index AS h3, 
---   classification.classification AS classification
+--   classification AS classification
 -- FROM 
 --   `sdsc-london-2024.spacetime.london_collisions_hotspot_classification`
 -- WHERE 
---   classification.classification <> 'undetected pattern'
---   AND classification.tau_p < 0.05
+--   classification <> 'undetected pattern'
+--   AND tau_p < 0.05
