@@ -391,6 +391,8 @@ We can immediately see the different dynamics in the widget:
 
 There is yet another analysis we can apply to the space-time Getis-Ord results, that will digest the results into a single map based on several pre-defined categories. In the future, these will be gathered in the documentation, and even though they are subject to change, this a quick summary of the categories that can be classified:
 
+<!-- TODO: make sure that the categories are the same ones as in the preview function -->
+
 | Category                 | Description                                                                                                                                                                                                                           |
 | :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Undetected Pattern`     | This category applies to locations that do not exhibit any discernible patterns of hot or cold activity as defined in subsequent categories.                                                                                          |

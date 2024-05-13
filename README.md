@@ -9,7 +9,7 @@ This repository contains all the material used in the workshop, organized in dif
 
 ## Notes on the code
 
-All the code uses the Google BigQuery project ``sdsc-london-2024.spacetime`` to store the tables and preview functions. There are some caveats for this:
+All the code uses the Google BigQuery project ``sdsc-london-2024.spacetime`` to store the tables and ``sdsc-london-2024.preview_carto`` to store the Analytics Toolbox preview functions. There are some caveats for this:
 - It is a public project, so every table mentioned in the code is accesible for any user using the BigQuery console.
 - It is read-only, so every time the code attempts to write a table in it, will fail. Please edit the code with a project and dataset that you are allowed to write to.
 - All of those tables do exist, so you can explore the output of each query without the need of actually running it.
