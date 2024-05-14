@@ -4,15 +4,13 @@
 
 ## Presenting the Data
 
-The data we will be using contains information about vehicle collisions in London, during the years 2021 and 2022. It is part of the [public report provided by Transport for London](https://tfl.gov.uk/corporate/publications-and-reports/road-safety#on-this-page-1), which is available online, under the “Road collision data” section.
-
-This data has been uploaded already to BigQuery and enriched with the appropriate boundaries, in order to properly visualize it.
+The data we will be using contains information about vehicle collisions in London, during the years 2021 and 2022. It is part of the [public report provided by Transport for London](https://tfl.gov.uk/corporate/publications-and-reports/road-safety#on-this-page-1), which is available online, under the “Road collision data” section. This data has been uploaded already to BigQuery, so feel free to simply fetch the tables mentioned below.
 
 The data comes in two different source tables:
 
 - The **collision data** itself, that contains a row per accidents and includes several features related to it as severity, time at which it occurred, and the LSOA where it happened. It can be found in the public table `sdsc-london-2024.spacetime.london_collisions`.
 
-- The **LSOA reference data**, a table that contains the ID and geometry per LSOA and different valuable features like the population that lives in such LSOA or the road km it contains. It can be found in the public table `sdsc-london-2024.spacetime.lsoa_reference_2021`. We can plot these geometries in a map to check exactly what are we working with.
+- The **LSOA reference data**, a table that contains the ID and geometry per LSOA and different valuable features like the population that lives in such LSOA or the road km it contains. There are roughly 5,000 of these zones with very different sizes and populations that range from 1K to 4K inhabitants. This information can be found in the public table `sdsc-london-2024.spacetime.lsoa_reference_2021`. We can plot these geometries in a map to check exactly what are we working with.
 
 [![SDSC London '24 - LSOA reference data](./img/01-lsoa-reference-data.png)](https://clausa.app.carto.com/map/529040c6-bd6a-4ba8-b608-a954aedab2db)
 
@@ -23,7 +21,7 @@ The data comes in two different source tables:
 
 For this use case, we are not interested to work with the individual collisions, but the aggregate counts per chosen timestamp. Therefore, our first step is to format the data in a single table that counts how many accidents per geographical support (per LSOA) have happened in each time step. We could work with daily data but in this use case it is probably going to be far too sparse - let's aggregate the series in weekly steps instead.
 
-We will be using an intermediate result, `london_collisions_all_indexes`, that consists on the cartesian product of all relevant weeks and all of the LSOAs. This will allow us to make sure that no 
+We will be using an intermediate result, `sdsc-london-2024.spacetime.london_collisions_all_indexes`, that consists on the cartesian product of all relevant weeks and all of the LSOAs. This will allow us to make sure that there are no missing rows when no collisions have happened in a place at some point in time. This kind of missing rows can induce noise in some of the methods that we will be using, so we want to make sure that everything is perfectly aligned.
 
 ```sql
 CREATE OR REPLACE TABLE
@@ -70,7 +68,7 @@ AS (
 );
 ```
 
-This way, we will now have one row per LSOA and week, that will contain the total number of collisions that have happened in such area. This is, certainly, a step in the right direction: we can now plot all this information to a map, and this table will be the cornerstone of the whole analysis we will be performing.
+This way, we will now have one row per LSOA and week, that will contain the total number of collisions that have happened in such area. If there are no collisions, the `COUNT` function will return a result of zero collisions instead of a missing row. We can now plot all this information to a map, and this table will be the cornerstone of the whole analysis we will be performing.
 
 [![SDSC London '24 - Vehicle Collisions per LSOA](./img/02-collisions-per-lsoa.png)](https://clausa.app.carto.com/map/9781d4d4-ea52-49cc-8f12-e1075c9cc12b)
 
@@ -84,7 +82,7 @@ Here, we can get an intuition of how population is distributed along the city…
 
 This is called the [Modifiable Areal Unit Problem or MAUP](https://en.wikipedia.org/wiki/Modifiable_areal_unit_problem), and it's a measure bias that we has been introduced when aggregating point data (collisions) to units with different shapes and scales (the LSOA). There is nothing inherently wrong in it, but can cause confusion if we don't fully understand it; that's why the collisions map is not great: it's a bad way to present the data to a general public. 
 
-If we had source data (collisions’ coordinates) we could have fell into it, but this time it came in our source data. It is important to have this in mind, to compensate for this bias. To have a more true-to-life representation of the population, we could compute the population density: it is not really the same variable anymore (it will be extensive instead of intensive), but for plotting it will be more suitable:
+If we had different source data (collisions’ coordinates) we could have fell into it, but this time it came baked into our source data. It is important to have this in mind, to compensate for this bias. To have a more true-to-life representation of the population, we could compute the population density and see how this map is intuitively more true to life. It is however not the same variable anymore: more notably it will be intensive instead of extensive, with everything that it entails.
 
 ```sql
 SELECT
@@ -96,7 +94,7 @@ FROM
 
 [![SDSC London '24 - Population density per LSOA](./img/04-population-density-per-lsoa.png)](https://clausa.app.carto.com/map/c2375760-4833-4447-9472-0ab233528608)
 
-We can see how the representation is night and day, and this visualization does actually represent where most of the population is located in London. Let's try, however, a different approach to work with this data.
+We can see how the representation is night and day, and this visualization is something we can interpret. Let's try, however, a different approach to work with this data.
 
 ## Projecting the Data
 
@@ -318,9 +316,9 @@ Therefore, both `LH` and `HL` are geospatial outliers, but the most interesting 
 
 ### Space-time Getis-Ord
 
-Getis-Ord is a family of statistics used to perform hot spot analysis: measure of value and how it correlates with its surroundings. The higher the value of the metric to measure in a cell, as well as the surrounding cells, using a convolution kernel. This way, we have a better insight on what are the dynamics from a geographical point of view.
+Getis-Ord is a family of statistics used to perform hot spot analysis: measure of value and how it correlates with its surroundings. The higher the value of the metric to measure in a cell, as well as the surrounding cells, the higher the metric. This way, we have a better insight on what are the dynamics from a geographical point of view: we are smoothing the noise out of the visualization. Contrary to what we were doing with Local Moran's $I$, focusing on outliers, now we can appreciate the general patterns.
 
-Space-time Getis-Ord iterates on this same concept, but adding time as a new dimension: now, the surroundings of a cell are not only its neighbors, but also the adjacent time steps (those same neighbors $N$ time steps before and after). If we had a 2D kernel before, now it is 3D.
+Space-time Getis-Ord iterates on this same concept, but adding time as a new dimension: now, the surroundings of a cell are not only its neighbors, but also the adjacent time steps (those same neighbors $N$ time steps before). If we had a 2D kernel before, now it is 3D.
 
 ```sql
 CALL `carto-un`.carto.GETIS_ORD_SPACETIME_H3_TABLE(
@@ -350,12 +348,12 @@ By performing this statistic, we can now check how different parts of the city b
 
 ### Time Series Clustering
 
-In the Analytics Toolbox, as part of these new space-time initiatives, we have made available a function that we expect to develop further in the future called `TIME_SERIES_CLUSTERING`, that allows to generate $N$ clusters of time series, using different clustering methods. Right now, it features two very simple approaches:
+In the Analytics Toolbox, as part of these new space-time initiatives, we have developed a function that we expect to develop further in the future called `TIME_SERIES_CLUSTERING`, that allows to generate $N$ clusters of time series, using different clustering methods. Right now, it features two very simple approaches:
 
 - Value characteristic, that will cluster the series based on the step-by-step distance of its values (the closer the signals, the closer the series);
 - Profile characteristic, that will cluster the series based on their dynamics along the time span passed (the closer the correlation, the closer the series).
 
-It can be tricky to cluster the series as-is, but now that we have smoothed the signal using the space-time Getis-Ord, we could try to cluster the cells based on the resulting temperature. We will take only into account those cells that have at least 75% of their observations with reasonable significance.
+It can be tricky to cluster the series as-is, but now that we have smoothed the signal using the space-time Getis-Ord, we could try to cluster the cells based on the resulting temperature. We will take only into account those cells that have at least 60% of their observations with reasonable significance.
 
 ```sql
 CALL `sdsc-london-2024.preview_carto.TIME_SERIES_CLUSTERING`(
@@ -383,13 +381,15 @@ In this map shows the different clusters that are returned as a result:
 
 We can immediately see the different dynamics in the widget:
 
-- There are two clusters that group high-concentration cells (#2 and #4) and two more for the lower values.
-- In the higher valued clusters, we can see a divergence in the number of collisions: while both clusters had a similar 2021, the areas in the #2 cluster had much less collisions during 2022.
-- In the lower valued ones, the #1 cluster features several spikes in winter that could he worth looking into.
+- Apart from cluster #3, which clearly clumps the "colder" areas, all of the rest start 2021 with very similar accident counts.
+- However, from July 2021 onwards, cluster #2 accumulates clearly more collisions than the other two.
+- Even though #1 and #4 have similar levels, there are certain points in which differ, like September 2021 or January 2022.
+
+This should kickstart some further exploration of the data to further understand these discrepancies, but that kind of in-depth analysis is out of the scope of this workshop. Let's just leave this part as some inspirational display of what the function does.
 
 ### Emerging Hotspots
 
-There is yet another analysis we can apply to the space-time Getis-Ord results, that will digest the results into a single map based on several pre-defined categories. In the future, these will be gathered in the documentation, and even though they are subject to change, this a quick summary of the categories that can be classified:
+There is yet another analysis we can apply to the space-time Getis-Ord results, that will digest the results into a single map based on several predefined categories. In the future, these will be gathered in the documentation, and even though they are subject to change, this a quick summary of the categories that can be classified:
 
 | Category                 | Description                                                                                                                                                                                                                           |
 | :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -430,6 +430,6 @@ CALL `sdsc-london-2024.preview_carto.SPACETIME_HOTSPOTS_CLASSIFICATION`(
 We can see how now we have the different types of behaviors at a glance in a single map. There are several insights we can extract from this map:
 
 - There is an amplifying hotspot in the city center that shows an upward trend in collisions.
-- The surroundings of that amplifying hotspot are mostly intermittent.
-- The periphery of the city is mostly cold spots, but most of them are fluctuating, intermittent or even waning.
+- The surroundings of that amplifying hotspot are mostly occasional.
+- The periphery of the city is mostly cold spots, but most of them are fluctuating or even declining.
 
