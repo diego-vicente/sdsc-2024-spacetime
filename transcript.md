@@ -257,11 +257,9 @@ Now we have projected the data into H3, but it is important to understand that t
 
 ### Local Moran’s *I*
 
-<!-- TODO: further talk about LISA metrics? -->
-
 Even though the main focus of the workshop is to focus on the space-time functions, let's first run a spatial-only analysis that will provide very valuable insights for the use case and that will be a very nice complement to the rest of the work we will be doing.
 
-Local Moran's $I$ is a cluster and outlier analysis that will provide information on how a cell relates with its surroundings. In this use case, it will help us find outliers with high concentration of accidents in areas where that is not common.
+Local Moran's $I$ is a cluster and outlier analysis that will provide information on how a cell relates with its surroundings. In this use case, it will help us find outliers with high concentration of accidents in areas where that is not common. It is part of a wider family of metrics called [LISA metrics (_local indicators of spatial association_)](https://spatialanalysisonline.com/HTML/local_indicators_of_spatial_as.htm); some of which will appear later in the workshop.
 
 To run the analysis, we can run the following query using the `LOCAL_MORANS_I_H3_TABLE` from the Analytics Toolbox:
 
