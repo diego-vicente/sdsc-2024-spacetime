@@ -433,3 +433,12 @@ We can see how now we have the different types of behaviors at a glance in a sin
 - The surroundings of that amplifying hotspot are mostly occasional.
 - The periphery of the city is mostly cold spots, but most of them are fluctuating or even declining.
 
+## Closing Thoughts
+
+To wrap everything up, let's consolidate all of our findings in a single map that marks all possible areas of interest: 
+- The city center hotspot should be the main focus to increase road safety.
+- The high-concentration zones surrounded by low concentration zones are relevant because they can hardly be explained by mobility.
+- There are zones in the outskirts that present the same dynamics as the city center (if luckily not the same magnitude), and should be explored in depth to understand this pattern.
+- There are also some zones that are significantly cold and significantly hot in the period, which should be explored to understand why and if there are any problematic seasons.
+
+[![SDSC '24 London - Wrap Up](./img/11-wrap-up.png)](https://clausa.app.carto.com/map/655f5bcf-e601-43e6-87e6-4a0843820767)
