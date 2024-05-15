@@ -357,14 +357,20 @@ It can be tricky to cluster the series as-is, but now that we have smoothed the 
 
 ```sql
 CALL `sdsc-london-2024.preview_carto.TIME_SERIES_CLUSTERING`(
+  -- Query or table name to fetch data from
   '''
     SELECT * FROM `sdsc-london-2024.spacetime.london_collisions_weekly_h3_gi`
     QUALIFY PERCENTILE_CONT(p_value, 0.6) OVER (PARTITION BY index) < 0.05
   ''',
+  -- Name of the column with the series ID
   'index',
+  -- Name of the column with the timestep
   'date',
+  -- Name of the value column
   'gi',
+  -- Name of the output table to save to
   'sdsc-london-2024.spacetime.london_collisions_weekly_h3_clusters',
+  -- Options JSON, containing 'method' (profile or value) and 'n_clusters'
   JSON '{ "method": "profile", "n_clusters": 4 }'
 );
 ```
@@ -415,12 +421,20 @@ We can run the analysis with a function call using the Getis-Ord results:
 
 ```sql
 CALL `sdsc-london-2024.preview_carto.SPACETIME_HOTSPOTS_CLASSIFICATION`(
+  -- Query or table to read input data
   'sdsc-london-2024.spacetime.london_collisions_weekly_h3_gi',
+  -- Table name to save the results to
   'sdsc-london-2024.spacetime.london_collisions_hotspot_classification',
+  -- Name of the column with the spatial index
   'index',
+  -- Name of the timstep column
   'date',
+  -- Name of the Gi column
   'gi',
+  -- Name of the p-value column
   'p_value',
+  -- Options JSON containing a p-value threshold and the algorithm:
+  -- 'mk' for Mann-Kendall and 'mmk' for Modified Mann-Kendall
   '{"threshold": 0.05, "algorithm": "mmk"}'
 );
 ```
