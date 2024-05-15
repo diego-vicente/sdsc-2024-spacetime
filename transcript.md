@@ -2,6 +2,8 @@
 
 ---
 
+**Note**: all these queries are expected to be run in the BigQuery console or CARTO Data Warehouse console. If you are running a trial, you can find the steps to access your console in the [CARTO Data Warehouse documentation](https://docs.carto.com/carto-user-manual/connections/carto-data-warehouse).
+
 ## Presenting the Data
 
 The data we will be using contains information about vehicle collisions in London, during the years 2021 and 2022. It is part of the [public report provided by Transport for London](https://tfl.gov.uk/corporate/publications-and-reports/road-safety#on-this-page-1), which is available online, under the “Road collision data” section. This data has been uploaded already to BigQuery, so feel free to simply fetch the tables mentioned below.
